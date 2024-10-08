@@ -1,0 +1,596 @@
+backup is an additional copy of production data, created and retained for the
+sole purpose of recovering lost or corupted data.
+10.1 Backup Purpose
+Backups are performed to serve three purposes: disaster recovery, operational
+recovery, and archiva l. These are covered in the following sections.
+10.1.1 Disaster Recovery
+One purpose of backups is to address disaster recovery needs. The backup
+copies are used for restoring data at an alternate site when the primary site is
+incapacitated due to a disaster. Based on recovery-point objective (RPO) and
+recovery-time objective (RTO) requirements, organizations use different data
+protection strategies for disaster recovery. When tape-based backup is used as
+a disaster recovery option, the backup tape media is shipped and stored at an
+offsite location. Later, these tapes can be recalled for restoration at the disaster
+recovery site. Organizations with stringent RPO and RTO requirements use
+remote replication technology to replicate data to a disaster recovery site. This
+allows organizations to bring production systems online in a relatively short
+period of time if a disaster occurs. Remote replication is covered in detail in
+Chapter 12.
+10.1.2 Operational Recovery
+Data in the production environment changes with every business transaction
+and operation. Backups are used to restore data if data loss or logical corrup-
+tion occurs during routine processing. The majority of restore requests in most
+organizations fall in this category. For example, it is common for a user to
+accidentally delete an important e-mail or for a fi le to become corrupted, which
+can be restored using backup data.
+10.1.3 Archival
+Backups are also performed to address archival requirements. Although con-
+tent addressed storage (CAS) has emerged as the primary solution for archives
+(CAS is discussed in Chapter 8), traditional backups are still used by small and
+medium enterprises for long-term preservation of transaction records, e-mail
+messages, and other business records required for regulatory compliance
+
+
+10.3 Backup Granularity
+Backup granularity depends on business needs and the required RTO/RPO.
+Based on the granularity, backups can be categorized as full, incremental and
+cumulative (differential). Most organizations use a combination of these three
+backup types to meet their backup and recovery requirements. Figure 10-1 shows
+the different backup granularity levels.
+
+Full backup is a backup of the complete data on the production volumes. A
+full backup copy is created by copying the data in the production volumes to
+a backup storage device. It provides a faster recovery but requires more stor-
+age space and also takes more time to back up. Incremental backup copies the
+data that has changed since the last full or incremental backup, whichever
+has occurred more recently. This is much faster than a full backup (because
+the volume of data backed up is restricted to the changed data only) but takes
+longer to restore. Cumulative backup copies the data that has changed since the
+last full backup. This method takes longer than an incremental backup but is
+faster to restore.Restore operations vary with the granularity of the backup. A full backup
+provides a single repository from which the data can be easily restored. The
+process of restoration from an incremental backup requires the last full backup
+and all the incremental backups available until the point of restoration. A restore
+from a cumulative backup requires the last full backup and the most recent
+cumulative backup.
+
+
+Backup Operation
+Backup server initiates scheduled backup process.
+Backup server retrieves backup-related information
+from backup catalog.
+Backup server instructs storage node to load backup
+media in backup device.
+Backup server instructs backup clients to send data
+to be backed up to storage node.
+Backup clients send data to storage node and update
+the backup catalog on the backup server.
+Storage node sends data to backup device.
+Storage node sends metadata and media information
+to backup server.
+Backup server updates the backup catalog.
+
+
+Restore operation
+The backup client requests the backup server for
+data restore.
+The backup server scans the backup catalog to identify
+data to be restored and the client that will receive data.
+The backup server instructs the storage node to load
+backup media in the backup device.
+Data is then read and sent to the backup client.
+The storage node sends restore metadata to the
+backup server.
+The backup server updates the backup catalog.
+
+
+Backup Architecture
+A backup system commonly uses the client-server architecture with a backup
+server and multiple backup clients. Figure 10-4 illustrates the backup archi-
+tecture. The backup server manages the backup operations and maintains the
+backup catalog, which contains information about the backup confi guration
+and backup metadata. Backup confi guration contains information about when
+to run backups, which client data to be backed up, and so on, and the backup
+metadata contains information about the backed up data. The role of a backup
+client is to gather the data that is to be backed up and send it to the storage node.
+It also sends the tracking information to the backup server.
+The storage node is responsible for writing the data to the backup device.
+(In a backup environment, a storage node is a host that controls backup devices.)
+The storage node also sends tracking information to the backup server. In
+many cases, the storage node is integrated with the backup server, and both
+are hosted on the same physical platform. A backup device is attached directly
+or through a network to the storage node’s host platform. Some backup archi-
+tecture refers to the storage node as the media server because it manages the
+storage device.
+
+Backup software provides reporting capabilities based on the backup catalog
+and the log fi les. These reports include information, such as the amount of data
+backed up, the number of completed and incomplete backups, and the types of
+errors that might have occurred. Reports can be customized depending on the
+specific backup software used.
+
+
+
+
+
+10.9 Backup in NAS Environments
+The use of a NAS head imposes a new set of considerations on the backup and
+recovery strategy in NAS environments. NAS heads use a proprietary operat-
+ing system and fi le system structure that supports multiple fi le-sharing proto-
+cols. In the NAS environment, backups can be implemented in different ways:
+server based, serverless, or using Network Data Management Protocol (NDMP).
+Common implementations are NDMP 2-way and NDMP 3-way.
+10.9.1 Server-Based and Serverless Backup
+In an application server-based backup, the NAS head retrieves data from a storage
+array over the network and transfers it to the backup client running on the applica-
+tion server. The backup client sends this data to the storage node, which in turn
+writes the data to the backup device. This results in overloading the network
+with the backup data and using application server resources to move the backup
+data. Figure 10-11 illustrates server-based backup in the NAS environment.
+Storage Array
+Backup Device
+LAN
+FC SAN
+NAS Head
+Backup
+Data
+Application Server/
+Backup Client
+Metadata
+Backup Server
+/Storage Node
+Figure 10-11: Server-based backup in a NAS environment
+
+In a serverless backup, the network share is mounted directly on the storage
+node. This avoids overloading the network during the backup process and elimi-
+nates the need to use resources on the application server. Figure 10-12 illustrates
+serverless backup in the NAS environment. In this scenario, the storage node,
+which is also a backup client, reads the data from the NAS head and writes it
+to the backup device without involving the application server. Compared to the
+previous solution, this eliminates one network hop.
+Storage Array
+Backup Device
+Application Server
+NAS Head
+LAN
+FC SAN
+Backup
+Data
+Backup Server
+/Storage Node
+/Backup Client
+Figure 10-12: Serverless backup in a NAS environment
+10.9.2 NDMP-Based Backup
+NDMP is an industry-standard TCP/IP-based protocol specifi cally designed
+for a backup in a NAS environment. It communicates with several elements in
+the backup environment (NAS head, backup devices, backup server, and so on)
+for data transfer and enables vendors to use a common protocol for the backup
+architecture. Data can be backed up using NDMP regardless of the operating
+
+system or platform. Due to its fl exibility, it is no longer necessary to transport
+data through the application server, which reduces the load on the application
+server and improves the backup speed.
+NDMP optimizes backup and restore by leveraging the high-speed connec-
+tion between the backup devices and the NAS head. In NDMP, backup data is
+sent directly from the NAS head to the backup device, whereas metadata is sent
+to the backup server. Figure 10-13 illustrates a backup in the NAS environment
+using NDMP 2-way. In this model, network traffic is minimized by isolating
+data movement from the NAS head to the locally attached backup device. Only
+metadata is transported on the network. The backup device is dedicated to the
+NAS device, and hence, this method does not support centralized management
+of all backup devices.
+Storage Array
+Backup Device
+Backup
+Data
+LAN
+FC SAN
+NAS Head
+Application Server
+/Backup Client
+Metadata
+Backup Server
+Figure 10-13: NDMP 2-way in a NAS environment
+In the NDMP 3-way method, a separate private backup network must be
+established between all NAS heads and the NAS head connected to the backup
+device. Metadata and NDMP control data are still transferred across the public
+network. Figure 10-14 shows a NDMP 3-way backup.
+
+Storage Array
+NAS Head
+FC SAN
+Private
+LAN
+Network
+Application Server
+/Backup Client
+Backup
+Data
+FC SAN
+NAS Head
+Metadata
+Backup Device
+Backup Server
+Figure 10-14: NDMP 3-way in a NAS environment
+An NDMP 3-way is useful when backup devices need to be shared
+among NAS heads. It enables the NAS head to control the backup device
+and share it with other NAS heads by receiving the backup data through
+the NDMP.
+
+
+Three basic topologies are used in a backup environment: direct-attached backup,
+LAN-based backup, and SAN-based backup. A mixed topology is also used by
+combining LAN-based and SAN-based topologies.
+In a direct-attached backup, the storage node is confi gured on a backup client,
+and the backup device is attached directly to the client. Only the metadata
+is sent to the backup server through the LAN. This confi guration frees the
+LAN from backup traffi c. The example in Figure 10-7 shows that the backup
+device is directly attached and dedicated to the backup client. As the environ-
+ment grows, there will be a need for centralized management and sharing
+of backup devices to optimize costs. An appropriate solution is required to
+share the backup devices among multiple servers. Network-based topologies
+(LAN-based and SAN-based) provide the solution to optimize the utilization
+of backup devices.
+In a LAN-based backup, the clients, backup server, storage node, and backup
+device are connected to the LAN. (see Figure 10-8). The data to be backed up is
+This impact can be minimized by adopting a number of measures, such as
+confi guring separate networks for backup and installing dedicated storage
+nodes for some application servers.
+A SAN-based backup is also known as a LAN-free backup. The SAN-based backup
+topology is the most appropriate solution when a backup device needs to be
+shared among clients. In this case, the backup device and clients are attached
+to the SAN. Figure 10-9 illustrates a SAN-based backup.
+In this example, a client sends the data to be backed up to the backup device
+over the SAN. Therefore, the backup data traffi c is restricted to the SAN, and
+only the backup metadata is transported over the LAN. The volume of metadata
+is insignifi cant when compared to the production data; the LAN performance
+is not degraded in this confi guration.
+The emergence of low-cost disks as a backup medium has enabled disk arrays
+to be attached to the SAN and used as backup devices. A tape backup of these
+data backups on the disks can be created and shipped offsite for disaster recovery
+and long-term retention The mixed topology uses both the LAN-based and SAN-based topologies, as
+shown in Figure 10-10. This topology might be implemented for several rea-
+sons, including cost, server location, reduction in administrative overhead, and
+performance considerations. 
+transferred from the backup client (source) to the backup device (destination)
+over the LAN, which might affect network performance.
+
+
+
+11.4.1 Host-Based Local Replication
+LVM-based replication and fi le system (FS) snapshot are two common methods
+of host-based local replication.
+LVM-Based Replication
+In LVM-based replication, the logical volume manager is responsible for creating
+and controlling the host-level logical volumes. An LVM has three components:
+physical volumes (physical disk), volume groups, and logical volumes. A volume
+group is created by grouping one or more physical volumes. Logical volumes
+are created within a given volume group. A volume group can have multiple
+logical volumes.
+In LVM-based replication, each logical block in a logical volume is mapped
+to two physical blocks on two different physical volumes, as shown in
+Figure 11-5. An application write to a logical volume is written to the two
+physical volumes by the LVM device driver. This is also known as LVM
+mirroring. Mirrors can be split, and the data contained therein can be inde-
+pendently accessed.
+Advantages of LVM-Based Replication
+The LVM-based replication technology is not dependent on a vendor-specifi c
+storage system. Typically, LVM is part of the operating system, and no additional
+license is required to deploy LVM mirroring.
+Limitations of LVM-Based Replication
+Every write generated by an application translates into two writes on the disk,
+and thus, an additional burden is placed on the host CPU. This can degrade
+application performance. Presenting an LVM-based local replica to another host
+is usually not possible because the replica will still be part of the volume group,
+which is usually accessed by one host at any given time.
+Tracking changes to the mirrors and performing incremental resynchroniza-
+tion operations is also a challenge because all LVMs do not support incremental
+resynchronization. If the devices are already protected by some level of RAID on
+the array, then the additional protection that the LVM mirroring provides is
+unnecessary. This solution does not scale to provide replicas of federated data-
+bases and applications. Both the replica and source are stored within the same
+volume group. Therefore, the replica might become unavailable if there is an
+error in the volume group. If the server fails, both the source and replica are
+unavailable until the server is brought back online.
+
+11.4.2 Storage Array-Based Local Replication
+In storage array-based local replication, the array-operating environment performs
+the local replication process. The host resources, such as the CPU and memory,
+are not used in the replication process. Consequently, the host is not burdened
+by the replication operations. The replica can be accessed by an alternative host
+for other business operations.
+In this replication, the required number of replica devices should be selected on
+the same array and then data should be replicated between the source-replica pairs.
+Figure 11-7 shows a storage array-based local replication, where the source and
+target are in the same array and accessed by different hosts.
+
+Full-Volume Mirroring
+In full-volume mirroring, the target is attached to the source and established
+as a mirror of the source (Figure 11-8 [a]). The data on the source is copied to
+the target. New updates to the source are also updated on the target. After all
+the data is copied and both the source and the target contain identical data, the
+target can be considered as a mirror of the source.
+
+Network-Based Local Replication
+In network-based replication, the replication occurs at the network layer between
+the hosts and storage arrays. Network-based replication combines the benefi ts
+of array-based and host-based replications. By offl oading replication from
+servers and arrays, network-based replication can work across a large number
+of server platforms and storage arrays, making it ideal for highly heteroge-
+neous environments. Continuous data protection (CDP) is a technology used for
+network-based local and remote replications. CDP for remote replication is
+detailed in Chapter 12.
+
+
+12.1 Modes of Remote Replication
+The two basic modes of remote replication are synchronous and asynchro-
+nous. In synchronous remote replication, writes must be committed to the source
+and remote replica (or target), prior to acknowledging “write complete” to
+the host (see Figure 12-1). Additional writes on the source cannot occur until
+each preceding write has been completed and acknowledged. This ensures
+that data is identical on the source and replica at all times. Further, writes are
+transmitted to the remote site exactly in the order in which they are received
+at the source. Therefore, write ordering is maintained. If a source-site failure
+occurs, synchronous remote replication provides zero or near-zero recovery-
+point objective (RPO).
+1 The host writes data to the source.
+2 Data from the source is replicated to the target at a remote site.
+3 The target acknowledges back to the source.
+4 The source acknowledges write complete to the host.
+In asynchronous remote replication, a write is committed to the source and
+immediately acknowledged to the host. In this mode, data is buffered at the
+source and transmitted to the remote site later (see Figure 12-3).
+Asynchronous replication eliminates the impact to the application’s response
+time because the writes are acknowledged immediately to the source host. This
+enables deployment of asynchronous replication over distances ranging from
+several hundred to several thousand kilometers between the primary and remote
+sites. Figure 12-4 shows the network bandwidth requirement for asynchronous
+replication. In this case, the required bandwidth can be provisioned equal to
+or greater than the average write workload. Data can be buffered during times
+when the bandwidth is not enough and moved later to the remote site. Therefore,
+sufficient buffer capacity should be provisioned.
+1 The host writes data to the source.
+2 The write is immediately acknowledged to the host.
+3 Data is transmitted to the target at a remote site later.
+4 The target acknowledges back to the source.
+In asynchronous replication, data at the remote site will be behind the source
+by at least the size of the buffer. Therefore, asynchronous remote replication
+provides a fi nite (nonzero) RPO disaster recovery solution. RPO depends on
+the size of the buffer, the available network bandwidth, and the write workload
+to the source.
+Asynchronous replication implementation can take advantage of locality of
+reference (repeated writes to the same location). If the same location is written
+multiple times in the buffer prior to transmission to the remote site, only the
+fi nal version of the data is transmitted. This feature conserves link bandwidth.
+In both synchronous and asynchronous modes of replication, only writes to
+the source are replicated; reads are still served from the source.
+
+
+
+12.2.2 Storage Array-Based Remote Replication
+In storage array-based remote replication, the array-operating environment and
+resources perform and manage data replication. This relieves the burden on
+the host CPUs, which can be better used for applications running on the host.
+A source and its replica device reside on different storage arrays. Data can be
+transmitted from the source storage array to the target storage array over a
+shared or a dedicated network.
+Replication between arrays may be performed in synchronous, asynchronous,
+or disk-buffered modes.
+Synchronous Replication Mode
+In array-based synchronous remote replication, writes must be committed to the
+source and the target prior to acknowledging “write complete” to the produc-
+tion host. Additional writes on that source cannot occur until each preceding
+write has been completed and acknowledged. Figure 12-7 shows the array-based
+synchronous remote replication process.
+In the case of synchronous remote replication, to optimize the replication
+process and to minimize the impact on application response time, the write is
+placed on cache of the two arrays. The intelligent storage arrays destage these
+writes to the appropriate disks later.
+If the network links fail, replication is suspended; however, production work
+can continue uninterrupted on the source storage array. The array operating
+environment keeps track of the writes that are not transmitted to the remote
+storage array. When the network links are restored, the accumulated data is
+transmitted to the remote storage array. During the time of network link out-
+age, if there is a failure at the source site, some data will be lost, and the RPO
+at the target will not be zero.
+296 Section III n Backup, Archive, and Replication
+Source Site
+1
+4
+Remote Site
+2
+3
+Source
+Production
+Host
+Source Storage
+Array
+Remote Storage
+Array
+Remote
+Host
+1 Write from the production host is received by the source storage array.
+2 Write is then transmitted to the remote storage array.
+3 Acknowledgment is sent to the source storage array by the remote storage array.
+4 Source storage array signals write-completion to the production host.
+Figure 12-7: Array-based synchronous remote replication
+Asynchronous Replication Mode
+In array-based asynchronous remote replication mode, as shown in Figure 12-8,
+a write is committed to the source and immediately acknowledged to the
+host. Data is buffered at the source and transmitted to the remote site later.
+The source and the target devices do not contain identical data at all times.
+The data on the target device is behind that of the source, so the RPO in this
+case is not zero.
+Source Site
+Remote Site
+1
+2
+3
+4
+Source
+Production
+Host
+Source Storage
+Array
+Remote Storage
+Array
+Remote
+Host
+1 The production host writes to the source storage array.
+2 The source array immediately acknowledges the production host.
+3 These writes are then transmitted to the target array.
+4 After the writes are received by the target array, it sends an acknowledgment to the source array.
+Figure 12-8: Array-based asynchronous remote replication
+Chapter 12 n Remote Replication 297
+Similar to synchronous replication, asynchronous replication writes are placed
+in cache on the two arrays and are later destaged to the appropriate disks.
+Some implementations of asynchronous remote replication maintain write
+ordering. A timestamp and sequence number are attached to each write when it
+is received by the source. Writes are then transmitted to the remote array, where
+they are committed to the remote replica in the exact order in which they were
+buffered at the source. This implicitly guarantees consistency of data on the
+remote replicas. Other implementations ensure consistency by leveraging the
+dependent write principle inherent in most DBMSs. In asynchronous remote
+replication, the writes are buffered for a predefi ned period of time. At the end
+of this duration, the buffer is closed, and a new buffer is opened for subsequent
+writes. All writes in the closed buffer are transmitted together and committed
+to the remote replica.
+Asynchronous remote replication provides network bandwidth cost-savings
+because the required bandwidth is lower than the peak write workload. During
+times when the write workload exceeds the average bandwidth, suffi cient buf-
+fer space must be confi gured on the source storage array to hold these writes.
+
+
+
+12.3 Three-Site Replication
+In synchronous replication, the source and target sites are usually within a
+short distance. Therefore, if a regional disaster occurs, both the source and the
+target sites might become unavailable. This can lead to extended RPO and RTO
+because the last known good copy of data would need to come from another
+source, such as an offsite tape library.
+A regional disaster will not affect the target site in asynchronous replication
+because the sites are typically several hundred or several thousand kilometers
+apart. If the source site fails, production can be shifted to the target site, but
+there is no further remote protection of data until the failure is resolved.
+Three-site replication mitigates the risks identifi ed in two-site replication. In
+a three-site replication, data from the source site is replicated to two remote
+sites. Replication can be synchronous to one of the two sites, providing a
+near zero-RPO solution, and it can be asynchronous or disk buffered to the
+other remote site, providing a fi nite RPO. Three-site remote replication can
+be implemented as a cascade/multihop or a triangle/multitarget solution.
+12.3.1 Three-Site Replication — Cascade/Multihop
+In the cascade/multihop three-site replication, data fl ows from the source to the
+intermediate storage array, known as a bunker, in the fi rst hop, and then from a
+bunker to a storage array at a remote site in the second hop. Replication between
+the source and the remote sites can be performed in two ways: synchronous +
+asynchronous or synchronous + disk buffered. Replication between the source
+and bunker occurs synchronously, but replication between the bunker and the
+remote site can be achieved either as disk-buffered mode or asynchronous mode.
+Synchronous + Asynchronous
+This method employs a combination of synchronous and asynchronous remote
+replication technologies. Synchronous replication occurs between the source
+and the bunker. Asynchronous replication occurs between the bunker and the
+remote site. The remote replica in the bunker acts as the source for asynchronous
+replication to create a remote replica at the remote site. Figure 12-11 (a) illustrates
+the synchronous + asynchronous method.
+RPO at the remote site is usually in the order of minutes for this implementa-
+tion. In this method, a minimum of three storage devices are required (including
+the source). The devices containing a synchronous replica at the bunker and the
+asynchronous replica at the remote are the other two devices.
+If a disaster occurs at the source, production operations are failed over to the
+bunker site with zero or near-zero data loss. But unlike the synchronous two-site
+situation, there is still remote protection at the third site. The RPO between
+the bunker and third site could be in the order of minutes.
+Chapter 12 n Remote Replication 301
+Source Device Remote Replica Remote Replica
+Synchronous Asynchronous
+Source Site
+Bunker Site Remote Site
+(a) Synchronous + Asynchronous
+Source Device Remote Replica
+Synchronous
+Remote Replica
+Disk Buffered
+Source Site
+Local Replica
+Bunker Site Remote Site
+(b) Synchronous + Disk Buffered
+Figure 12-11: Three-site remote replication cascade/multihop
+If there is a disaster at the bunker site or if there is a network link failure
+between the source and bunker sites, the source site continues to operate as
+normal but without any remote replication. This situation is similar to remote
+site failure in a two-site replication solution. The updates to the remote site can-
+not occur due to the failure in the bunker site. Therefore, the data at the remote
+site keeps falling behind, but the advantage here is that if the source fails dur-
+ing this time, operations can be resumed at the remote site. RPO at the remote
+site depends on the time difference between the bunker site failure and source
+site failure.
+A regional disaster in three-site cascade/multihop replication is similar to a
+source site failure in two-site asynchronous replication. Operations are failover
+to the remote site with an RPO in the order of minutes. There is no remote
+protection until the regional disaster is resolved. Local replication technologies
+could be used at the remote site during this time.
+If a disaster occurs at the remote site, or if the network links between the
+bunker and the remote site fail, the source site continues to work as normal
+with disaster recovery protection provided at the bunker site.
+302 Section III n Backup, Archive, and Replication
+Synchronous + Disk Buffered
+This method employs a combination of local and remote replication technolo-
+gies. Synchronous replication occurs between the source and the bunker: a
+consistent PIT local replica is created at the bunker. Data is transmitted from the
+local replica at the bunker to the remote replica at the remote site. Optionally,
+a local replica can be created at the remote site after data is received from the
+bunker. Figure 12-11 (b) illustrates the synchronous + disk buffered method.
+In this method, a minimum of four storage devices are required (includ-
+ing the source) to replicate one storage device. The other three devices are the
+synchronous remote replica at the bunker, a consistent PIT local replica at the
+bunker, and the replica at the remote site. RPO at the remote site is usually in
+the order of hours for this implementation.
+The process to create the consistent PIT copy at the bunker and incrementally
+updating the remote replica occurs continuously in a cycle.
+12.3.2 Three-Site Replication — Triangle/Multitarget
+In three-site triangle/multitarget replication, data at the source storage array is
+concurrently replicated to two different arrays at two different sites, as shown
+in Figure 12-12. The source-to-bunker site (target 1) replication is synchronous
+with a near-zero RPO. The source-to-remote site (target 2) replication is asyn-
+chronous with an RPO in the order of minutes. The distance between the source
+and the remote sites could be thousands of miles. This implementation does
+not depend on the bunker site for updating data on the remote site because
+data is asynchronously copied to the remote site directly from the source. The
+triangle/multitarget confi guration provides consistent RPO unlike cascade/
+multihop solutions in which the failure of the bunker site results in the remote
+site falling behind and the RPO increasing.
+The key benefi t of three-site triangle/multitarget replication is the ability
+to failover to either of the two remote sites in the case of source-site failure,
+with disaster recovery (asynchronous) protection between the bunker and
+remote sites. Resynchronization between the two surviving target sites is
+incremental. Disaster recovery protection is always available if any one-site
+failure occurs.
+During normal operations, all three sites are available and the production
+workload is at the source site. At any given instant, the data at the bunker and
+the source is identical. The data at the remote site is behind the data at the source
+and the bunker. The replication network links between the bunker and remote
+sites will be in place but not in use. Thus, during normal operations, there is
+no data movement between the bunker and remote arrays. The difference in
+the data between the bunker and remote sites is tracked so that if a source site
+disaster occurs, operations can be resumed at the bunker or the remote sites
+with incremental resynchronization between these two sites.
+Chapter 12 n Remote Replication 303
+Remote Replica
+Bunker Site
+Source Device
+Remote Replica
+Source Site
+Remote Site
+Figure 12-12: Three-site replication triangle/multitarget
+A regional disaster in three-site triangle/multitarget replication is similar to a
+source site failure in two-site asynchronous replication. If failure occurs, opera-
+tions failover to the remote site with an RPO within minutes. There is no remote
+protection until the regional disaster is resolved. Local replication technologies
+could be used at the remote site during this time.
+A failure of the bunker or the remote site is not actually considered a disaster
+because the operation can continue uninterrupted at the source site while remote
+disaster recovery protection is still available. A network link failure to either
+the source-to-bunker or the source-to-remote site does not impact production at
+the source site while remote disaster recovery protection is still available with
+the site that can be reached
